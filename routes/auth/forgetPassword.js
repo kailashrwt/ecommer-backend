@@ -152,12 +152,7 @@ router.post('/forgot-password', async (req, res) => {
         };
 
         // Send email with timeout
-        const emailPromise = transporter.sendMail(mailOptions);
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Email sending timeout')), 10000);
-        });
-
-        await Promise.race([emailPromise, timeoutPromise]);
+        await transporter.sendMail(mailOptions);
 
         console.log('Password reset email sent successfully to:', email);
 
