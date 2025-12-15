@@ -8,12 +8,10 @@ const router = express.Router();
 
 // Email transporter configuration with improved settings
 const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port:587,
-    secure: false,
+service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS 
+        user: process.env.EMAIL_USER, || 'knn12794@gmail.com',
+        pass: process.env.EMAIL_PASS  || 'egnzwkvghdmagdqs'
     },
     tls: {
         rejectUnauthorized: process.env.NODE_ENV === 'production' // Only reject in production
@@ -152,7 +150,11 @@ router.post('/forgot-password', async (req, res) => {
         };
 
         // Send email with timeout
-        await transporter.sendMail(mailOptions);
+const emailPromise = transport.sendMail(mailOptions);
+const timeoutPromise = new Promise((_, reject) => {
+setTimeout(() => reject(new Error('Email sending timeout')), 10000);
+});
+     await Promise.race([emailPromise, timeoutPromise]);
 
         console.log('Password reset email sent successfully to:', email);
 
