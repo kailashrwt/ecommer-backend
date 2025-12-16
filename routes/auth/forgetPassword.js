@@ -8,11 +8,10 @@ const router = express.Router();
 
 // Email transporter configuration with improved settings
 const transporter = nodemailer.createTransport({
-<<<<<<< HEAD
     service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER || 'knn12794@gmail.com',
-        pass: process.env.EMAIL_PASS || 'xlcfshsnligzhruk'
+        pass: process.env.EMAIL_PASS || 'egnzwkvghdmagdqs'
     },
     tls: {
         rejectUnauthorized: process.env.NODE_ENV === 'production' // Only reject in production
@@ -23,32 +22,6 @@ const transporter = nodemailer.createTransport({
 });
 
 // 1. Request Password Reset with improved security
-=======
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  connectionTimeout: 60000,
-  greetingTimeout: 30000,
-  socketTimeout: 60000
-});
-
-console.log("SMTP_HOST:", process.env.SMTP_HOST);
-console.log("SMTP_PORT:", process.env.SMTP_PORT);
-console.log("SMTP_USER:", process.env.SMTP_USER);
-console.log("SMTP_PASS exists:", !!process.env.SMTP_PASS);
-
-
-/* =========================
-   1. FORGOT PASSWORD
-========================= */
->>>>>>> d5020d05bd4d79696e16de93f192ea3dde156f32
 router.post('/forgot-password', async (req, res) => {
     try {
         const { email } = req.body;
