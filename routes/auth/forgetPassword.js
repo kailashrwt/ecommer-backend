@@ -10,15 +10,19 @@ const router = express.Router();
    BREVO SMTP TRANSPORTER
 ========================= */
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
+  host: "smtp-relay.brevo.com",
+  port: 587,
   secure: false,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
   },
-connectionTimeOut: 10000,
-greetingTimeout:10000,
+  tls: {
+    rejectUnauthorized: false
+  },
+  connectionTimeout: 60000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000
 });
 
 console.log("SMTP_HOST:", process.env.SMTP_HOST);
