@@ -1,41 +1,35 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const SibApiV3Sdk = require('sib-api-v3-sdk');
 const User = require('../../models/User');
 
 const router = express.Router();
 
 /* =========================
-   BREVO SMTP TRANSPORTER
+   BREVO API SETUP
 ========================= */
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
+const client = SibApiV3Sdk.ApiClient.instance;
+client.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
+
+const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
 /* =========================
-   1. FORGOT PASSWORD
+   FORGOT PASSWORD
 ========================= */
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email is required'
+      return res.status(200).json({
+        success: true,
+        message: 'If the email exists, a password reset link has been sent'
       });
     }
 
     const user = await User.findOne({ email });
 
-    // Security: same response even if user not found
+    // 🔐 Security: same response even if user not found
     if (!user) {
       return res.status(200).json({
         success: true,
@@ -43,7 +37,7 @@ router.post('/forgot-password', async (req, res) => {
       });
     }
 
-    // Generate reset token
+    // Generate token
     const resetToken = crypto.randomBytes(32).toString('hex');
 
     user.resetPasswordToken = crypto
@@ -56,131 +50,50 @@ router.post('/forgot-password', async (req, res) => {
 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-    const mailOptions = {
-      from: `"Lara Jewellery" <${process.env.SMTP_USER}>`,
-      to: user.email,
-      subject: 'Password Reset - Lara Jewellery',
-      html: `
-        <h2>Password Reset</h2>
-        <p>Hello <b>${user.firstName || 'User'}</b>,</p>
-        <p>Click the button below to reset your password:</p>
-        <p>
+    // 📧 Send email via Brevo API
+    await emailApi.sendTransacEmail({
+      sender: {
+        name: 'Lara Jewellery',
+        email: 'no-reply@larajewellery.com'
+      },
+      to: [
+        { email: user.email }
+      ],
+      subject: 'Reset Your Password - Lara Jewellery',
+      htmlContent: `
+        <div style="font-family:Arial;padding:20px">
+          <h2>Password Reset</h2>
+          <p>Hello <b>${user.firstName || 'User'}</b>,</p>
+          <p>Click the button below to reset your password:</p>
           <a href="${resetUrl}"
-             style="padding:12px 25px;
+             style="display:inline-block;
+                    padding:12px 24px;
                     background:#D4AF37;
-                    color:white;
+                    color:#000;
                     text-decoration:none;
-                    border-radius:5px;">
+                    border-radius:6px;
+                    font-weight:bold;">
             Reset Password
           </a>
-        </p>
-        <p>This link will expire in 1 hour.</p>
+          <p style="margin-top:20px;font-size:13px;color:#555">
+            This link will expire in 1 hour.
+          </p>
+        </div>
       `
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'If the email exists, a password reset link has been sent'
     });
 
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error sending password reset email'
-    });
-  }
-});
 
-/* =========================
-   2. RESET PASSWORD
-========================= */
-router.post('/reset-password/:token', async (req, res) => {
-  try {
-    const { password, confirmPassword } = req.body;
-
-    if (!password || !confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password and confirm password required'
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters'
-      });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Passwords do not match'
-      });
-    }
-
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(req.params.token)
-      .digest('hex');
-
-    const user = await User.findOne({
-      resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: Date.now() }
-    }).select('+password');
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired reset token'
-      });
-    }
-
-    user.password = password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    user.lastPasswordChange = Date.now();
-
-    await user.save();
-
-    res.status(200).json({
+    // ❗ Always return success (security + UX)
+    return res.status(200).json({
       success: true,
-      message: 'Password reset successful'
-    });
-
-  } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error resetting password'
-    });
-  }
-});
-
-/* =========================
-   3. TEST EMAIL
-========================= */
-router.post('/test-email', async (req, res) => {
-  try {
-    await transporter.sendMail({
-      from: `"Lara Jewellery" <${process.env.SMTP_USER}>`,
-      to: process.env.SMTP_USER,
-      subject: 'Brevo SMTP Test',
-      text: 'Brevo SMTP is working perfectly 🚀'
-    });
-
-    res.json({
-      success: true,
-      message: 'Test email sent successfully'
-    });
-  } catch (error) {
-    console.error('Test email error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Test email failed'
+      message: 'If the email exists, a password reset link has been sent'
     });
   }
 });
