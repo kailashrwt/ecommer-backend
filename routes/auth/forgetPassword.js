@@ -182,10 +182,8 @@ router.post('/forgot-password', async (req, res) => {
     }
 });
 
-
-// 2. Reset Password with Token - FIXED VERSION
+// 2. Reset Password with Token
 router.post('/reset-password/:token', async (req, res) => {
-
     try {
         const { token } = req.params;
         const { password, confirmPassword } = req.body;
@@ -212,21 +210,17 @@ router.post('/reset-password/:token', async (req, res) => {
             });
         }
 
-        console.log('4. Input validation passed');
-
         // Hash the token to compare with stored token
         const hashedToken = crypto
             .createHash('sha256')
             .update(token)
             .digest('hex');
 
-
         // Find user with valid token - INCLUDE PASSWORD FIELD
         const user = await User.findOne({
             resetPasswordToken: hashedToken,
             resetPasswordExpires: { $gt: Date.now() }
-        }).select('+password'); // THIS IS THE FIX - include password field
-
+        }).select('+password'); // Include password field
 
         if (!user) {
             return res.status(400).json({
@@ -234,7 +228,6 @@ router.post('/reset-password/:token', async (req, res) => {
                 message: 'Invalid or expired reset token. Please request a new password reset link.'
             });
         }
-
 
         // Check if new password is different from old password
         try {
@@ -306,8 +299,8 @@ router.post('/reset-password/:token', async (req, res) => {
 
             await transporter.sendMail(mailOptions);
         } catch (emailError) {
+            console.error('Confirmation email error:', emailError);
         }
-
 
         res.status(200).json({
             success: true,
@@ -315,10 +308,7 @@ router.post('/reset-password/:token', async (req, res) => {
         });
 
     } catch (error) {
-        console.log('=== PASSWORD RESET ERROR ===');
-        console.error('Error:', error.message);
-        console.error('Stack:', error.stack);
-
+        console.error('Password reset error:', error);
         res.status(500).json({
             success: false,
             message: 'Error resetting password',
@@ -364,7 +354,7 @@ router.get('/validate-reset-token/:token', async (req, res) => {
             success: true,
             valid: true,
             message: 'Token is valid',
-            email: user.email // Optional: return email for display
+            email: user.email
         });
 
     } catch (error) {
@@ -377,16 +367,14 @@ router.get('/validate-reset-token/:token', async (req, res) => {
     }
 });
 
-// Test email route with improved logging
+// Test email route
 router.post('/test-email', async (req, res) => {
     try {
         console.log('Testing email configuration for Lara Jewellery...');
 
-        // Verify connection configuration
         await transporter.verify();
         console.log('Email server is ready to take our messages');
 
-        // Send test email
         const testResult = await transporter.sendMail({
             from: `"Lara Jewellery" <${process.env.EMAIL_USER || 'knn12794@gmail.com'}>`,
             to: process.env.EMAIL_USER || 'knn12794@gmail.com',
@@ -424,7 +412,7 @@ router.post('/test-email', async (req, res) => {
     }
 });
 
-// Cleanup expired tokens (optional - can be run periodically)
+// Cleanup expired tokens
 router.post('/cleanup-expired-tokens', async (req, res) => {
     try {
         const result = await User.updateMany(
@@ -453,6 +441,5 @@ router.post('/cleanup-expired-tokens', async (req, res) => {
         });
     }
 });
-
 
 module.exports = router;
