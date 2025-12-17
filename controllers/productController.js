@@ -15,10 +15,9 @@ exports.deleteProduct = async (req, res) => {
       });
     }
 
-    // Delete Image
-    if (product.image) {
-      const publicId = product.image.split("/").pop().split(".")[0];
-      await cloudinary.uploader.destroy(`products/${publicId}`);
+     // ✅ SAFE delete
+    if (product.imagePublicId) {
+      await cloudinary.uploader.destroy(product.imagePublicId);
     }
 
     await Product.findByIdAndDelete(req.params.id);
@@ -47,7 +46,8 @@ exports.addProduct = async (req, res) => {
       price,
       stock,
       category,
-      image: imageUrl,
+      image: req.file.path,                 // URL
+      imagePublicId: req.file.filename,  
       description,
     });
 
