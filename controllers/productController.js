@@ -37,6 +37,10 @@ exports.deleteProduct = async (req, res) => {
 
 exports.addProduct = async (req, res) => {
   try {
+ console.log("FILE:", req.file);
+    console.log("BODY:", req.body);
+
+
     const { name, price, category, stock, description } = req.body;
 
     const imageUrl = req.file ? req.file.path : "";
