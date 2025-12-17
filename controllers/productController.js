@@ -1,4 +1,5 @@
 const Product = require("../models/Product");
+const cloudinary = require("../config/cloudinary");
 const fs = require("fs");
 const path = require("path");
 
@@ -16,10 +17,8 @@ exports.deleteProduct = async (req, res) => {
 
     // Delete Image
     if (product.image) {
-      const filePath = path.join(__dirname, "..", "..", product.image);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      const publicId = product.image.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(`products/${publicId}`);
     }
 
     await Product.findByIdAndDelete(req.params.id);
@@ -41,7 +40,7 @@ exports.addProduct = async (req, res) => {
   try {
     const { name, price, category, stock, description } = req.body;
 
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : "";
+    const imageUrl = req.file ? req.file.path : "";
 
     const newProduct = new Product({
       name,
@@ -84,7 +83,13 @@ exports.updateProduct = async (req, res) => {
     let imageUrl = req.body.oldImage;
 
     if (req.file) {
-      imageUrl = `/uploads/${req.file.filename}`;
+      // delete old image from cloudinary
+      if (product.image) {
+        const publicId = product.image.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(`products/${publicId}`);
+      }
+
+      imageUrl = req.file.path; // new Cloudinary URL
     }
 
     const updated = await Product.findByIdAndUpdate(
