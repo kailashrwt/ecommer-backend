@@ -84,29 +84,51 @@ exports.updateProduct = async (req, res) => {
   try {
     const { name, price, category, stock, description } = req.body;
 
-    let imageUrl = req.body.oldImage;
+    // 1️⃣ existing product fetch karo
+    const product = await Product.findById(req.params.id);
 
-    if (req.file) {
-      // delete old image from cloudinary
-      if (product.image) {
-        const publicId = product.image.split("/").pop().split(".")[0];
-        await cloudinary.uploader.destroy(`products/${publicId}`);
-      }
-
-      imageUrl = req.file.path; // new Cloudinary URL
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
+    let imageUrl = product.image;
+    let imagePublicId = product.imagePublicId;
+
+    // 2️⃣ agar nayi image aayi hai
+    if (req.file) {
+      // old image delete
+      if (imagePublicId) {
+        await cloudinary.uploader.destroy(imagePublicId);
+      }
+
+      imageUrl = req.file.path;
+      imagePublicId = req.file.filename;
+    }
+
+    // 3️⃣ update
     const updated = await Product.findByIdAndUpdate(
       req.params.id,
-      { name, price, category, stock, description, image: imageUrl },
+      {
+        name,
+        price,
+        category,
+        stock,
+        description,
+        image: imageUrl,
+        imagePublicId,
+      },
       { new: true }
     );
 
     res.json({ success: true, product: updated });
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("UPDATE PRODUCT ERROR:", err);
+    res.status(500).json({ success: false, message: "Update failed" });
   }
 };
+
 
 exports.getSingleProduct = async (req, res) => {
   try {
