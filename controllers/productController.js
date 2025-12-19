@@ -40,35 +40,35 @@ exports.addProduct = async (req, res) => {
     console.log("FILE:", req.file);
     console.log("BODY:", req.body);
 
-    const { name, price, category, stock, description } = req.body;
-
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "Image upload failed"
+        message: "Image not received from frontend"
       });
     }
+
+    const { name, price, category, stock, description } = req.body;
 
     const newProduct = new Product({
       name,
       price,
-      stock,
       category,
-      image: req.file.path,        // Cloudinary URL
-      imagePublicId: req.file.filename,
+      stock,
       description,
+      image: req.file.path,
+      imagePublicId: req.file.filename,
     });
 
     await newProduct.save();
 
     res.status(201).json({
       success: true,
-      message: "Product added Successfully",
+      message: "Product added successfully",
       product: newProduct,
     });
 
   } catch (error) {
-    console.error("Add product error:", error);
+    console.error("ADD PRODUCT ERROR:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
