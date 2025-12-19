@@ -37,21 +37,25 @@ exports.deleteProduct = async (req, res) => {
 
 exports.addProduct = async (req, res) => {
   try {
- console.log("FILE:", req.file);
+    console.log("FILE:", req.file);
     console.log("BODY:", req.body);
-
 
     const { name, price, category, stock, description } = req.body;
 
-    const imageUrl = req.file ? req.file.path : "";
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Image upload failed"
+      });
+    }
 
     const newProduct = new Product({
       name,
       price,
       stock,
       category,
-      image: req.file.path,                 // URL
-      imagePublicId: req.file.filename,  
+      image: req.file.path,        // Cloudinary URL
+      imagePublicId: req.file.filename,
       description,
     });
 
@@ -62,11 +66,13 @@ exports.addProduct = async (req, res) => {
       message: "Product added Successfully",
       product: newProduct,
     });
+
   } catch (error) {
     console.error("Add product error:", error);
-    res.status(500).json({ success: false, message: "Server Error" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 exports.getProducts = async (req, res) => {
   try {
