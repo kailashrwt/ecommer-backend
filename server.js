@@ -55,7 +55,6 @@ app.get('/api/debug/users', async (req, res)=>{
 
 // Routes
 app.use('/api/auth', require('./routes/auth/login'));
-app.use('/api/auth', require('./routes/auth/forgetPassword'));
 app.use('/api/client', require('./routes/client/registration'));
 app.use('/api/admin', require('./routes/admin/adminDashboard'));
 app.use('/api/products', require('./routes/admin/productRoutes'));
