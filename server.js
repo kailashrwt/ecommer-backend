@@ -19,7 +19,6 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.options("*", cors(corsOptions))
 app.use(express.urlencoded({ extended: true }));
 
 console.log("MONGO_URL =", process.env.MONGO_URL);
